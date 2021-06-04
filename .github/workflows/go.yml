@@ -1,0 +1,35 @@
+name: Go
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Start MongoDB
+      uses: supercharge/mongodb-github-action@1.6.0
+      with:
+        mongodb-version: 4.4
+        mongodb-replica-set: rs0
+
+    - name: Test
+      run: go test -v ./...
+      env:
+        CI: true
+        MONGODB_URL: "mongodb://localhost:27017/?replicaSet=rs0"
+        MONGODB_DB_NAME: "ci_test_data"

@@ -1,0 +1,9 @@
+.idea
+.env
+*.out
+main
+prodCert
+
+.env_test
+.env_local
+.env_local_with_transaction
