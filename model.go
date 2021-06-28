@@ -8,6 +8,7 @@ package odm
 import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
+	"reflect"
 )
 
 type IModel interface {
@@ -18,6 +19,39 @@ type IModel interface {
 	Deleting(ctx context.Context, cfg *FieldsConfig) error
 	Creating(ctx context.Context, cfg *FieldsConfig) error
 	Saving(ctx context.Context, cfg *FieldsConfig) error
+}
+
+type IModels []IModel
+
+func (models IModels) Interfaces() (output []interface{}) {
+	for v, _ := range models {
+		output = append(output, v)
+	}
+	return
+}
+
+func (models IModels) At(i int) IModel {
+	return models[i]
+}
+
+func prepareModels(ctx context.Context, cfg *FieldsConfig, models interface{}) (output IModels, err error) {
+	rv := reflect.ValueOf(models)
+	for rv.Kind() == reflect.Ptr || rv.Kind() == reflect.Interface {
+		rv = rv.Elem()
+	}
+	switch rv.Kind() {
+	case reflect.Slice:
+		for i := 0; i < rv.Len(); i++ {
+			if model, ok := rv.Index(i).Interface().(IModel); ok {
+				output = append(output, model)
+			} else {
+				return nil, InvalidatedModels
+			}
+		}
+	default:
+		return nil, InvalidatedModels
+	}
+	return output, nil
 }
 
 type DefaultModel struct {

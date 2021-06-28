@@ -6,8 +6,15 @@
 package odm
 
 import (
+	"context"
+	"errors"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+var (
+	InvalidatedModels        = errors.New("invalidated models input")
+	defaultInsertManyOptions = options.InsertMany().SetOrdered(true)
 )
 
 type Collection struct {
@@ -58,4 +65,42 @@ func (o *Options) Coll(m IModel) *Collection {
 		o.storeColl(meta, coll)
 		return coll
 	}
+}
+
+// Create
+func (c *Collection) Create(model IModel, opts ...*options.InsertOneOptions) error {
+	ctx, _ := context.WithTimeout(context.Background(), c.opts.timeout)
+	res, err := c.Collection.InsertOne(ctx, model, opts...)
+
+	if err != nil {
+		return err
+	}
+
+	// Set new id
+	model.SetID(res.InsertedID)
+	return err
+}
+
+// CreateMany
+func (c *Collection) CreateMany(input interface{}, opts ...*options.InsertManyOptions) error {
+	ctx, _ := context.WithTimeout(context.Background(), c.opts.timeout)
+	models, err := prepareModels(ctx, c.fieldsConfig, input)
+	if err != nil {
+		return err
+	}
+
+	// run creating saving hooks
+	if err = modelsHooksRunnerExecutor(ctx, c.fieldsConfig, models, creatingHook, savingHook); err != nil {
+		return err
+	}
+
+	// set order to true forcefully
+	result, err := c.Collection.InsertMany(ctx, models.Interfaces(), append(opts, defaultInsertManyOptions)...)
+	if err != nil {
+		return err
+	}
+	for index, id := range result.InsertedIDs {
+		models.At(index).SetID(id)
+	}
+	return nil
 }

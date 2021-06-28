@@ -69,3 +69,37 @@ type DeletingHook interface {
 type DeletedHook interface {
 	Deleted(ctx context.Context, result *mongo.DeleteResult) error
 }
+
+type hookRunner func(ctx context.Context, cfg *FieldsConfig, model IModel) error
+
+func savingHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+	return model.Saving(ctx, cfg)
+}
+
+func creatingHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+	return model.Creating(ctx, cfg)
+}
+
+func deletingHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+	return model.Deleting(ctx, cfg)
+}
+
+func modelHooksRunnerExecutor(ctx context.Context, cfg *FieldsConfig, model IModel, runners ...hookRunner) error {
+	for _, runner := range runners {
+		err := runner(ctx, cfg, model)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func modelsHooksRunnerExecutor(ctx context.Context, cfg *FieldsConfig, models IModels, runners ...hookRunner) error {
+	for _, model := range models {
+		err := modelHooksRunnerExecutor(ctx, cfg, model, runners...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
