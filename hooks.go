@@ -32,7 +32,7 @@ type UpdatedHook interface {
 
 // SoftDeletingHook is called before soft deleting a model
 type SoftDeletingHook interface {
-	SoftDeleting(ctx context.Context) error
+	SoftDeleting(ctx context.Context, cfg *FieldsConfig) error
 }
 
 // SoftDeletedHook is called after soft deleting a model
@@ -42,7 +42,7 @@ type SoftDeletedHook interface {
 
 // RestoringHook is called before soft restoring a model
 type RestoringHook interface {
-	Restoring(ctx context.Context) error
+	Restoring(ctx context.Context, cfg *FieldsConfig) error
 }
 
 // RestoredHook is called after soft restoring a model
@@ -72,6 +72,75 @@ type DeletedHook interface {
 
 type hookRunner func(ctx context.Context, cfg *FieldsConfig, model IModel) error
 
+func restoringHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+	if hook, ok := model.(RestoringHook); ok {
+		if err := hook.Restoring(ctx, cfg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func restoredHook(updateResult *mongo.UpdateResult) hookRunner {
+	return func(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+		if hook, ok := model.(RestoredHook); ok {
+			if err := hook.Restored(ctx, updateResult); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func softDeletingHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+	if hook, ok := model.(SoftDeletingHook); ok {
+		if err := hook.SoftDeleting(ctx, cfg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func softDeletedHook(updateResult *mongo.UpdateResult) hookRunner {
+	return func(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+		if hook, ok := model.(SoftDeletedHook); ok {
+			if err := hook.SoftDeleted(ctx, updateResult); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func updatingHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+	if hook, ok := model.(UpdatingHook); ok {
+		if err := hook.Updating(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func updatedHook(updateResult *mongo.UpdateResult) hookRunner {
+	return func(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+		if hook, ok := model.(SavedHook); ok {
+			if err := hook.Saved(ctx); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func savedHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+	if hook, ok := model.(SavedHook); ok {
+		if err := hook.Saved(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func savingHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
 	return model.Saving(ctx, cfg)
 }
@@ -80,8 +149,33 @@ func creatingHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
 	return model.Creating(ctx, cfg)
 }
 
+func createdHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+	if hook, ok := model.(CreatedHook); ok {
+		if err := hook.Created(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func deletingHook(ctx context.Context, cfg *FieldsConfig, model IModel) error {
-	return model.Deleting(ctx, cfg)
+	if hook, ok := model.(DeletingHook); ok {
+		if err := hook.Deleting(ctx, cfg); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func deletedHook(result *mongo.DeleteResult) hookRunner {
+	return func(ctx context.Context, cfg *FieldsConfig, model IModel) error {
+		if hook, ok := model.(DeletedHook); ok {
+			if err := hook.Deleted(ctx, result); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
 
 func modelHooksRunnerExecutor(ctx context.Context, cfg *FieldsConfig, model IModel, runners ...hookRunner) error {

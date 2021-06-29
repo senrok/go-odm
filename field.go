@@ -6,7 +6,6 @@
 package odm
 
 import (
-	"context"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"reflect"
 	"strings"
@@ -44,24 +43,6 @@ const (
 	primaryID      = "primaryID"
 )
 
-func (f *DeletedAtField) Deleting(ctx context.Context, cfg *FieldsConfig) error {
-	reflect.ValueOf(f).Elem().FieldByName(cfg.DeleteTimeField).
-		Set(reflect.ValueOf(time.Now().UTC()))
-	return nil
-}
-
-func (f *TimestampFields) Creating(ctx context.Context, cfg *FieldsConfig) error {
-	reflect.ValueOf(f).Elem().FieldByName(cfg.AutoCreateTimeField).
-		Set(reflect.ValueOf(time.Now().UTC()))
-	return nil
-}
-
-func (f *TimestampFields) Saving(ctx context.Context, cfg *FieldsConfig) error {
-	reflect.ValueOf(f).Elem().FieldByName(cfg.AutoUpdateTimeField).
-		Set(reflect.ValueOf(time.Now().UTC()))
-	return nil
-}
-
 type TimestampFields struct {
 	CreatedAt time.Time `json:"created_at,omitempty" bson:"created_at,omitempty" odm:"autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at,omitempty" bson:"updated_at,omitempty" odm:"autoUpdateTime"`
@@ -76,6 +57,10 @@ type FieldsConfig struct {
 	AutoUpdateTimeField string
 	DeleteTimeField     string
 	PrimaryIDField      string
+}
+
+func (info FieldsConfig) SoftDeletable() bool {
+	return info.DeleteTimeField != ""
 }
 
 type FieldsInfo []FieldInfo

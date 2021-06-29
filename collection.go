@@ -8,6 +8,7 @@ package odm
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -68,8 +69,11 @@ func (o *Options) Coll(m IModel) *Collection {
 }
 
 // Create
-func (c *Collection) Create(model IModel, opts ...*options.InsertOneOptions) error {
-	ctx, _ := context.WithTimeout(context.Background(), c.opts.timeout)
+func (c *Collection) Create(ctx context.Context, model IModel, opts ...*options.InsertOneOptions) error {
+	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, creatingHook, savingHook); err != nil {
+		return err
+	}
+
 	res, err := c.Collection.InsertOne(ctx, model, opts...)
 
 	if err != nil {
@@ -78,12 +82,16 @@ func (c *Collection) Create(model IModel, opts ...*options.InsertOneOptions) err
 
 	// Set new id
 	model.SetID(res.InsertedID)
+
+	if err = modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, createdHook, savedHook); err != nil {
+		return err
+	}
+
 	return err
 }
 
 // CreateMany
-func (c *Collection) CreateMany(input interface{}, opts ...*options.InsertManyOptions) error {
-	ctx, _ := context.WithTimeout(context.Background(), c.opts.timeout)
+func (c *Collection) CreateMany(ctx context.Context, input interface{}, opts ...*options.InsertManyOptions) error {
 	models, err := prepareModels(ctx, c.fieldsConfig, input)
 	if err != nil {
 		return err
@@ -102,5 +110,135 @@ func (c *Collection) CreateMany(input interface{}, opts ...*options.InsertManyOp
 	for index, id := range result.InsertedIDs {
 		models.At(index).SetID(id)
 	}
+
+	if err = modelsHooksRunnerExecutor(ctx, c.fieldsConfig, models, createdHook, savedHook); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func (c *Collection) Update(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
+	filter := bson.M{c.fieldsConfig.PrimaryIDField: model.GetID()}
+
+	if c.fieldsConfig.SoftDeletable() {
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+	}
+
+	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, updatingHook, savingHook); err != nil {
+		return err
+	}
+
+	res, err := c.UpdateOne(ctx, filter, bson.M{"$set": model}, opts...)
+	if err != nil {
+		return err
+	}
+
+	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, updatedHook(res), savedHook); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Collection) Find(ctx context.Context, filter bson.M, result interface{}, opts ...*options.FindOptions) error {
+	if c.fieldsConfig.SoftDeletable() {
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+	}
+	res, err := c.Collection.Find(ctx, filter, opts...)
+	if err != nil {
+		return err
+	}
+	if err = res.All(ctx, result); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Collection) FindOne(ctx context.Context, filter bson.M, result interface{}, opts ...*options.FindOneOptions) error {
+	if c.fieldsConfig.SoftDeletable() {
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+	}
+	return c.Collection.FindOne(ctx, filter, opts...).Decode(result)
+}
+
+var (
+	UnableSoftDeletable = errors.New("unable soft-delete")
+)
+
+func (c *Collection) SoftDeleteOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
+	filter := bson.M{c.fieldsConfig.PrimaryIDField: model.GetID()}
+
+	if !c.fieldsConfig.SoftDeletable() {
+		return UnableSoftDeletable
+	} else {
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+	}
+
+	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, softDeletingHook); err != nil {
+		return err
+	}
+
+	res, err := c.UpdateOne(ctx, filter, bson.M{"$set": model}, opts...)
+	if err != nil {
+		return err
+	}
+
+	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, softDeletedHook(res)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Collection) RestoreOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
+	filter := bson.M{c.fieldsConfig.PrimaryIDField: model.GetID()}
+
+	if !c.fieldsConfig.SoftDeletable() {
+		return UnableSoftDeletable
+	} else {
+		onlySoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+	}
+
+	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, restoringHook); err != nil {
+		return err
+	}
+
+	res, err := c.UpdateOne(ctx, filter, bson.M{"$set": model}, opts...)
+	if err != nil {
+		return err
+	}
+
+	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, restoredHook(res)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Collection) DeleteOne(ctx context.Context, model IModel, opts ...*options.DeleteOptions) error {
+
+	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, deletingHook); err != nil {
+		return err
+	}
+
+	filter := bson.M{c.fieldsConfig.PrimaryIDField: model.GetID()}
+
+	res, err := c.Collection.DeleteOne(ctx, filter, opts...)
+	if err != nil {
+		return err
+	}
+
+	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, deletedHook(res)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func excludeSoftDeletedItems(deletedAtField string, m bson.M) {
+	if _, ok := m[deletedAtField]; ok {
+	} else {
+		m[deletedAtField] = bson.M{"$exists": false}
+	}
+}
+
+func onlySoftDeletedItems(deletedAtField string, m bson.M) {
+	m[deletedAtField] = bson.M{"$exists": true}
 }

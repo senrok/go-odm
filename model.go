@@ -9,6 +9,7 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/mongo"
 	"reflect"
+	"time"
 )
 
 type IModel interface {
@@ -16,9 +17,39 @@ type IModel interface {
 
 	GetID() interface{}
 	SetID(id interface{})
-	Deleting(ctx context.Context, cfg *FieldsConfig) error
+	SoftDeleting(ctx context.Context, cfg *FieldsConfig) error
 	Creating(ctx context.Context, cfg *FieldsConfig) error
 	Saving(ctx context.Context, cfg *FieldsConfig) error
+}
+
+type DefaultModel struct {
+	IDField         `bson:",inline"`
+	TimestampFields `bson:",inline"`
+	DeletedAtField  `bson:",inline"`
+}
+
+func (f *DefaultModel) Restoring(ctx context.Context, cfg *FieldsConfig) error {
+	reflect.ValueOf(f).Elem().FieldByName(cfg.DeleteTimeField).
+		Set(reflect.ValueOf(nil))
+	return nil
+}
+
+func (f *DefaultModel) SoftDeleting(ctx context.Context, cfg *FieldsConfig) error {
+	reflect.ValueOf(f).Elem().FieldByName(cfg.DeleteTimeField).
+		Set(reflect.ValueOf(time.Now().UTC()))
+	return nil
+}
+
+func (f *DefaultModel) Creating(ctx context.Context, cfg *FieldsConfig) error {
+	reflect.ValueOf(f).Elem().FieldByName(cfg.AutoCreateTimeField).
+		Set(reflect.ValueOf(time.Now().UTC()))
+	return nil
+}
+
+func (f *DefaultModel) Saving(ctx context.Context, cfg *FieldsConfig) error {
+	reflect.ValueOf(f).Elem().FieldByName(cfg.AutoUpdateTimeField).
+		Set(reflect.ValueOf(time.Now().UTC()))
+	return nil
 }
 
 type IModels []IModel
@@ -52,12 +83,6 @@ func prepareModels(ctx context.Context, cfg *FieldsConfig, models interface{}) (
 		return nil, InvalidatedModels
 	}
 	return output, nil
-}
-
-type DefaultModel struct {
-	IDField         `bson:",inline"`
-	TimestampFields `bson:",inline"`
-	DeletedAtField  `bson:",inline"`
 }
 
 // CollectionGetter interface contains a method to return
