@@ -25,7 +25,7 @@ func TestGenModelConfig(t *testing.T) {
 	assert.False(t, time.Time{}.Equal(data.CreatedAt))
 	_ = data.Saving(context.TODO(), cfg)
 	assert.False(t, time.Time{}.Equal(data.UpdatedAt))
-	_ = data.Deleting(context.TODO(), cfg)
+	_ = data.SoftDeleting(context.TODO(), cfg)
 	assert.False(t, time.Time{}.Equal(data.DeletedAt))
 }
 
