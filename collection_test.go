@@ -184,3 +184,14 @@ func TestCollection_DeleteMany(t *testing.T) {
 	err := opts.Coll(&Doc{}).DeleteMany(context.TODO(), bson.M{})
 	assert.Nil(t, err)
 }
+
+func TestCollection_Count(t *testing.T) {
+	opts := setupDefaultOpts()
+	resetDB(opts)
+	data := seedDoc(opts)
+	err := opts.Coll(&Doc{}).SoftDeleteOne(context.TODO(), data[0])
+	assert.Nil(t, err)
+	result, err := opts.Coll(&Doc{}).Count(context.TODO(), bson.M{})
+	assert.Nil(t, err)
+	assert.Equal(t, int64(len(data)-1), result)
+}

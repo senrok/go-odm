@@ -273,6 +273,14 @@ func (c *Collection) DeleteMany(ctx context.Context, filter interface{}, opts ..
 	return nil
 }
 
+// Count
+func (c *Collection) Count(ctx context.Context, filter bson.M, opts ...*options.CountOptions) (int64, error) {
+	if c.fieldsConfig.SoftDeletable() {
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
+	}
+	return c.Collection.CountDocuments(ctx, filter, opts...)
+}
+
 func excludeSoftDeletedItems(deletedAtField string, m bson.M) {
 	if _, ok := m[deletedAtField]; ok {
 	} else {
