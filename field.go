@@ -6,10 +6,13 @@
 package odm
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"reflect"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type IDField struct {
@@ -36,7 +39,8 @@ func (f *IDField) SetID(id interface{}) {
 }
 
 const (
-	tag            = "odm"
+	odm_tag        = "odm"
+	bson_tag       = "bson"
 	autoCreateTime = "autoCreateTime"
 	autoUpdateTime = "autoUpdateTime"
 	deleteTime     = "deleteTime"
@@ -57,6 +61,7 @@ type FieldsConfig struct {
 	AutoUpdateTimeField string
 	DeleteTimeField     string
 	PrimaryIDField      string
+	DeleteTimeBsonField string
 }
 
 func (info FieldsConfig) SoftDeletable() bool {
@@ -74,6 +79,7 @@ func (info FieldsInfo) genModelConfig() *FieldsConfig {
 			mc.AutoUpdateTimeField = f.Name
 		} else if strings.Contains(f.RawTag, deleteTime) {
 			mc.DeleteTimeField = f.Name
+			mc.DeleteTimeBsonField = f.BsonName
 		} else if strings.Contains(f.RawTag, primaryID) {
 			mc.PrimaryIDField = f.Name
 		}
@@ -82,10 +88,11 @@ func (info FieldsInfo) genModelConfig() *FieldsConfig {
 }
 
 type FieldInfo struct {
-	Name   string
-	RawTag string
-	Tags   []string
-	Index  []int
+	Name     string
+	BsonName string
+	RawTag   string
+	Tags     []string
+	Index    []int
 }
 
 func genModelFieldsInfo(data interface{}) *FieldsInfo {
@@ -104,13 +111,16 @@ func getModelFieldsInfo(t reflect.Type, fieldsInfo *FieldsInfo, index []int) {
 	for i := 0; i < t.NumField(); i++ {
 		// increase
 		field := t.Field(i)
-		tag := field.Tag.Get(tag)
+		tag := field.Tag.Get(odm_tag)
+		structTags, _ := bsoncodec.DefaultStructTagParser(field)
+
 		if tag != "" {
 			*fieldsInfo = append(*fieldsInfo, FieldInfo{
-				RawTag: tag,
-				Tags:   strings.Split(tag, ","),
-				Index:  append(index, i),
-				Name:   field.Name,
+				RawTag:   tag,
+				Tags:     strings.Split(tag, ","),
+				Index:    append(index, i),
+				Name:     field.Name,
+				BsonName: structTags.Name,
 			})
 		}
 		if field.Type.Kind() == reflect.Struct {

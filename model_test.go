@@ -8,10 +8,11 @@ package odm
 import (
 	"context"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type TagTest struct {
@@ -21,6 +22,7 @@ type TagTest struct {
 func TestGenModelConfig(t *testing.T) {
 	data := TagTest{}
 	cfg := genModelFieldsInfo(data).genModelConfig()
+	assert.Equal(t, "deleted_at", cfg.DeleteTimeBsonField)
 	_ = data.Creating(context.TODO(), cfg)
 	assert.False(t, time.Time{}.Equal(data.CreatedAt))
 	_ = data.Saving(context.TODO(), cfg)
