@@ -7,9 +7,10 @@ package odm
 
 import (
 	"context"
-	"go.mongodb.org/mongo-driver/mongo"
 	"reflect"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type IModel interface {
@@ -30,7 +31,7 @@ type DefaultModel struct {
 
 func (f *DefaultModel) Restoring(ctx context.Context, cfg *FieldsConfig) error {
 	reflect.ValueOf(f).Elem().FieldByName(cfg.DeleteTimeField).
-		Set(reflect.ValueOf(nil))
+		Set(reflect.ValueOf(time.Time{}))
 	return nil
 }
 
@@ -55,7 +56,7 @@ func (f *DefaultModel) Saving(ctx context.Context, cfg *FieldsConfig) error {
 type IModels []IModel
 
 func (models IModels) Interfaces() (output []interface{}) {
-	for v, _ := range models {
+	for _, v := range models {
 		output = append(output, v)
 	}
 	return

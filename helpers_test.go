@@ -6,8 +6,12 @@
 package odm
 
 import (
-	"github.com/joho/godotenv"
+	"context"
 	"os"
+
+	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -33,6 +37,24 @@ func setupDefaultOpts() *Options {
 		panic(err)
 	}
 	return opts
+}
+
+func resetDB(opts *Options) {
+	_, err := opts.Coll(&Doc{}).Collection.DeleteMany(context.TODO(), bson.M{})
+	PanicErr(err)
+}
+
+func seedDoc(opts *Options) []*Doc {
+	docs := []*Doc{{Name: "weny"}, {Name: "leo"}}
+	err := opts.Coll(&Doc{}).CreateMany(context.TODO(), &docs)
+	PanicErr(err)
+	return docs
+}
+
+func PanicErr(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
 
 type Doc struct {

@@ -6,10 +6,12 @@
 package odm
 
 import (
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"context"
 	"sync"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type Collections sync.Map
@@ -50,6 +52,12 @@ func SetDatabase(url string, dbName string, opts ...*options.ClientOptions) Opti
 		if err != nil {
 			return err
 		}
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+		err = c.Connect(ctx)
+		if err != nil {
+			return err
+		}
+
 		opt.db = c.Database(dbName)
 		return nil
 	}

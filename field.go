@@ -61,6 +61,7 @@ type FieldsConfig struct {
 	AutoUpdateTimeField string
 	DeleteTimeField     string
 	PrimaryIDField      string
+	PrimaryIDBsonField  string
 	DeleteTimeBsonField string
 }
 
@@ -82,6 +83,7 @@ func (info FieldsInfo) genModelConfig() *FieldsConfig {
 			mc.DeleteTimeBsonField = f.BsonName
 		} else if strings.Contains(f.RawTag, primaryID) {
 			mc.PrimaryIDField = f.Name
+			mc.PrimaryIDBsonField = f.BsonName
 		}
 	}
 	return mc

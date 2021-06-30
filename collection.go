@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	InvalidatedModels        = errors.New("invalidated models input")
+	InvalidatedModels        = errors.New("invalidated models input\n try []*YourModel")
 	defaultInsertManyOptions = options.InsertMany().SetOrdered(true)
 	UnableSoftDeletable      = errors.New("unable soft-delete")
 )
@@ -121,19 +121,19 @@ func (c *Collection) CreateMany(ctx context.Context, input interface{}, opts ...
 	return nil
 }
 
-// Update
-func (c *Collection) Update(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
-	filter := bson.M{c.fieldsConfig.PrimaryIDField: model.GetID()}
+// UpdateOne
+func (c *Collection) UpdateOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
+	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: model.GetID()}
 
 	if c.fieldsConfig.SoftDeletable() {
-		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
 	}
 
 	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, updatingHook, savingHook); err != nil {
 		return err
 	}
 
-	res, err := c.UpdateOne(ctx, filter, bson.M{"$set": model}, opts...)
+	res, err := c.Collection.UpdateOne(ctx, filter, bson.M{"$set": model}, opts...)
 	if err != nil {
 		return err
 	}
@@ -147,7 +147,7 @@ func (c *Collection) Update(ctx context.Context, model IModel, opts ...*options.
 // Find
 func (c *Collection) Find(ctx context.Context, filter bson.M, result interface{}, opts ...*options.FindOptions) error {
 	if c.fieldsConfig.SoftDeletable() {
-		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
 	}
 	res, err := c.Collection.Find(ctx, filter, opts...)
 	if err != nil {
@@ -162,26 +162,26 @@ func (c *Collection) Find(ctx context.Context, filter bson.M, result interface{}
 // FindOne
 func (c *Collection) FindOne(ctx context.Context, filter bson.M, result interface{}, opts ...*options.FindOneOptions) error {
 	if c.fieldsConfig.SoftDeletable() {
-		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
 	}
 	return c.Collection.FindOne(ctx, filter, opts...).Decode(result)
 }
 
 // SoftDeleteOne
 func (c *Collection) SoftDeleteOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
-	filter := bson.M{c.fieldsConfig.PrimaryIDField: model.GetID()}
+	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: model.GetID()}
 
 	if !c.fieldsConfig.SoftDeletable() {
 		return UnableSoftDeletable
 	} else {
-		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
 	}
 
 	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, softDeletingHook); err != nil {
 		return err
 	}
 
-	res, err := c.UpdateOne(ctx, filter, bson.M{"$set": model}, opts...)
+	res, err := c.Collection.UpdateOne(ctx, filter, bson.M{"$set": model}, opts...)
 	if err != nil {
 		return err
 	}
@@ -195,7 +195,7 @@ func (c *Collection) SoftDeleteOne(ctx context.Context, model IModel, opts ...*o
 // SoftDeleteMany
 func (c *Collection) SoftDeleteMany(ctx context.Context, filter bson.M, opts ...*options.UpdateOptions) error {
 	if c.fieldsConfig.SoftDeletable() {
-		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
 	}
 	_, err := c.Collection.UpdateMany(ctx, filter, bson.M{"$set": bson.M{c.fieldsConfig.DeleteTimeBsonField: time.Now()}})
 	if err != nil {
@@ -206,19 +206,19 @@ func (c *Collection) SoftDeleteMany(ctx context.Context, filter bson.M, opts ...
 
 // RestoreOne
 func (c *Collection) RestoreOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
-	filter := bson.M{c.fieldsConfig.PrimaryIDField: model.GetID()}
+	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: model.GetID()}
 
 	if !c.fieldsConfig.SoftDeletable() {
 		return UnableSoftDeletable
 	} else {
-		onlySoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+		onlySoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
 	}
 
 	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, restoringHook); err != nil {
 		return err
 	}
 
-	res, err := c.UpdateOne(ctx, filter, bson.M{"$set": model}, opts...)
+	res, err := c.Collection.UpdateOne(ctx, filter, bson.M{"$set": model}, opts...)
 	if err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func (c *Collection) RestoreMany(ctx context.Context, filter bson.M, opts ...*op
 	if !c.fieldsConfig.SoftDeletable() {
 		return UnableSoftDeletable
 	} else {
-		onlySoftDeletedItems(c.fieldsConfig.DeleteTimeField, filter)
+		onlySoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
 	}
 
 	_, err := c.Collection.UpdateMany(ctx, filter, bson.M{"$unset": bson.M{c.fieldsConfig.DeleteTimeBsonField: ""}})
@@ -251,7 +251,7 @@ func (c *Collection) DeleteOne(ctx context.Context, model IModel, opts ...*optio
 		return err
 	}
 
-	filter := bson.M{c.fieldsConfig.PrimaryIDField: model.GetID()}
+	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: model.GetID()}
 
 	res, err := c.Collection.DeleteOne(ctx, filter, opts...)
 	if err != nil {
