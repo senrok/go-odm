@@ -58,14 +58,14 @@ func (o *Options) NewCollection(m IModel, name string, opts ...*options.Collecti
 }
 
 // Coll gets a collection or return a new collection
-func (o *Options) Coll(m IModel) *Collection {
+func (o *Options) Coll(m IModel, opts ...*options.CollectionOptions) *Collection {
 	meta := CollName(m)
 	// exists
 	if ok, coll := o.loadColl(meta); ok {
 		return coll
 		// not exists
 	} else {
-		coll := o.NewCollection(m, meta)
+		coll := o.NewCollection(m, meta, opts...)
 		o.storeColl(meta, coll)
 		return coll
 	}
