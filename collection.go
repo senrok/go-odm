@@ -8,6 +8,7 @@ package odm
 import (
 	"context"
 	"errors"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -83,8 +84,12 @@ func (c *Collection) Create(ctx context.Context, model IModel, opts ...*options.
 		return err
 	}
 
-	// Set new id
-	model.SetID(res.InsertedID)
+	if v, ok := model.GetID().(primitive.ObjectID); ok {
+		if v.IsZero() {
+			// Set new id
+			model.SetID(res.InsertedID)
+		}
+	}
 
 	if err = modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, createdHook, savedHook); err != nil {
 		return err
@@ -111,7 +116,12 @@ func (c *Collection) CreateMany(ctx context.Context, input interface{}, opts ...
 		return err
 	}
 	for index, id := range result.InsertedIDs {
-		models.At(index).SetID(id)
+		if v, ok := models.At(index).GetID().(primitive.ObjectID); ok {
+			if v.IsZero() {
+				// Set new id
+				models.At(index).SetID(id)
+			}
+		}
 	}
 
 	if err = modelsHooksRunnerExecutor(ctx, c.fieldsConfig, models, createdHook, savedHook); err != nil {

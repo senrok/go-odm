@@ -8,6 +8,7 @@ package odm
 import (
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
 	"time"
 
@@ -45,8 +46,11 @@ func TestCollection_Create(t *testing.T) {
 		Name: "weny",
 		Age:  12,
 	}
+	id := primitive.NewObjectID()
+	doc.SetID(id)
 	err := opts.Coll(&doc).Create(context.TODO(), &doc)
 	assert.Nil(t, err)
+	assert.Equal(t, id, doc.ID)
 	assert.False(t, doc.CreatedAt.IsZero())
 	assert.False(t, doc.UpdatedAt.IsZero())
 }
