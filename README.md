@@ -57,10 +57,10 @@ Insert a new Document
 
 Update a document
 ```go
-    docs:=getYourData()
-    updatedAt := docs[0].UpdatedAt
-	docs[0].Name = "weny updated"
-	err := opts.Coll(&Doc{}).UpdateOne(context.TODO(), docs[0])
+        docs:=getYourData()
+        updatedAt := docs[0].UpdatedAt
+        docs[0].Name = "weny updated"
+        err := opts.Coll(&Doc{}).UpdateOne(context.TODO(), docs[0])
 ```
 
 Soft-Delete a document
