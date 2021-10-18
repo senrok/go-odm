@@ -1,4 +1,4 @@
-module github.com/go-odm/godm
+module github.com/senrok/go-odm
 
 go 1.15
 
