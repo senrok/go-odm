@@ -9,8 +9,8 @@ import (
 type TransactionFunc func(session mongo.Session, sc mongo.SessionContext) error
 
 // TransactionWithCtx creates a transaction with the given context and the default client.
-func (opts Options) TransactionWithCtx(ctx context.Context, f TransactionFunc) error {
-	return TransactionWithClient(ctx, opts.db.Client(), f)
+func (o Options) TransactionWithCtx(ctx context.Context, f TransactionFunc) error {
+	return TransactionWithClient(ctx, o.db.Client(), f)
 }
 
 // TransactionWithClient creates a transaction with the given client.

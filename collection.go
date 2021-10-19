@@ -72,7 +72,7 @@ func (o *Options) Coll(m IModel, opts ...*options.CollectionOptions) *Collection
 	}
 }
 
-// Create
+// Create method insert a new record into database.
 func (c *Collection) Create(ctx context.Context, model IModel, opts ...*options.InsertOneOptions) error {
 	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, creatingHook, savingHook); err != nil {
 		return err
@@ -98,7 +98,8 @@ func (c *Collection) Create(ctx context.Context, model IModel, opts ...*options.
 	return err
 }
 
-// CreateMany
+// CreateMany inserts multi-records into databases.
+// Notes: by default, inserts records ordered.
 func (c *Collection) CreateMany(ctx context.Context, input interface{}, opts ...*options.InsertManyOptions) error {
 	models, err := prepareModels(ctx, c.fieldsConfig, input)
 	if err != nil {
@@ -131,7 +132,7 @@ func (c *Collection) CreateMany(ctx context.Context, input interface{}, opts ...
 	return nil
 }
 
-// UpdateOne
+// UpdateOne updates a record.
 func (c *Collection) UpdateOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
 	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: model.GetID()}
 
@@ -154,7 +155,7 @@ func (c *Collection) UpdateOne(ctx context.Context, model IModel, opts ...*optio
 	return nil
 }
 
-// Find
+// Find searches and returns records in the search results.
 func (c *Collection) Find(ctx context.Context, filter bson.M, result interface{}, opts ...*options.FindOptions) error {
 	if c.fieldsConfig.SoftDeletable() {
 		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
@@ -169,7 +170,7 @@ func (c *Collection) Find(ctx context.Context, filter bson.M, result interface{}
 	return nil
 }
 
-// FindOne
+// FindOne searches and returns the first document in the search results.
 func (c *Collection) FindOne(ctx context.Context, filter bson.M, result interface{}, opts ...*options.FindOneOptions) error {
 	if c.fieldsConfig.SoftDeletable() {
 		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
@@ -177,7 +178,8 @@ func (c *Collection) FindOne(ctx context.Context, filter bson.M, result interfac
 	return c.Collection.FindOne(ctx, filter, opts...).Decode(result)
 }
 
-// SoftDeleteOne
+// SoftDeleteOne soft-deletes a records form collection.
+// Notes: if your Model doesn't specify the deletedAt fields, then you will get an error.
 func (c *Collection) SoftDeleteOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
 	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: model.GetID()}
 
@@ -202,7 +204,8 @@ func (c *Collection) SoftDeleteOne(ctx context.Context, model IModel, opts ...*o
 	return nil
 }
 
-// SoftDeleteMany
+// SoftDeleteMany soft-deletes soft-delete multi-records form collection.
+// Notes: if your Model doesn't specify the deletedAt fields, then you will get an error.
 func (c *Collection) SoftDeleteMany(ctx context.Context, filter bson.M, opts ...*options.UpdateOptions) error {
 	if c.fieldsConfig.SoftDeletable() {
 		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
@@ -214,7 +217,8 @@ func (c *Collection) SoftDeleteMany(ctx context.Context, filter bson.M, opts ...
 	return nil
 }
 
-// RestoreOne
+// RestoreOne restores a soft-deleted record form collection.
+// Notes: if your Model doesn't specify the deletedAt fields, then you will get an error.
 func (c *Collection) RestoreOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
 	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: model.GetID()}
 
@@ -239,7 +243,8 @@ func (c *Collection) RestoreOne(ctx context.Context, model IModel, opts ...*opti
 	return nil
 }
 
-// RestoreMany
+// RestoreMany restores multi soft-deleted records form collection.
+//// Notes: if your Model doesn't specify the deletedAt fields, then you will get an error.
 func (c *Collection) RestoreMany(ctx context.Context, filter bson.M, opts ...*options.UpdateOptions) error {
 	if !c.fieldsConfig.SoftDeletable() {
 		return UnableSoftDeletable
@@ -254,7 +259,7 @@ func (c *Collection) RestoreMany(ctx context.Context, filter bson.M, opts ...*op
 	return nil
 }
 
-// DeleteOne
+// DeleteOne deletes a soft-deleted record form collection.
 func (c *Collection) DeleteOne(ctx context.Context, model IModel, opts ...*options.DeleteOptions) error {
 
 	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, deletingHook); err != nil {
@@ -274,7 +279,7 @@ func (c *Collection) DeleteOne(ctx context.Context, model IModel, opts ...*optio
 	return nil
 }
 
-// DeleteMany
+// DeleteMany deletes multi soft-deleted records form collection.
 func (c *Collection) DeleteMany(ctx context.Context, filter interface{}, opts ...*options.DeleteOptions) error {
 	_, err := c.Collection.DeleteMany(ctx, filter, opts...)
 	if err != nil {
@@ -283,7 +288,7 @@ func (c *Collection) DeleteMany(ctx context.Context, filter interface{}, opts ..
 	return nil
 }
 
-// Count
+// Count returns the number of documents in the collection
 func (c *Collection) Count(ctx context.Context, filter bson.M, opts ...*options.CountOptions) (int64, error) {
 	if c.fieldsConfig.SoftDeletable() {
 		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)

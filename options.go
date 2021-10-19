@@ -24,7 +24,7 @@ type Options struct {
 
 type Option func(opts *Options) error
 
-//Options Clone Current Options
+//Clone the Options
 func (o *Options) Clone() *Options {
 	// clone collections
 	collectionsCopy := &sync.Map{}
@@ -39,7 +39,7 @@ func (o *Options) Clone() *Options {
 	}
 }
 
-// SetDatabase setup database by connection url and db name
+// SetDatabase set up the client connection via a specific connection string and specific database name
 func SetDatabase(url string, dbName string, opts ...*options.ClientOptions) Option {
 	return func(opt *Options) error {
 		c, err := mongo.NewClient(
@@ -69,7 +69,7 @@ var defaultOptions = &Options{
 	collections: &sync.Map{},
 }
 
-// DefaultOpts returns a new Options
+// NewOpts returns a new Options
 func NewOpts(opts ...Option) (*Options, error) {
 	opt := &Options{
 		db:          nil,

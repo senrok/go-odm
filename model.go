@@ -13,9 +13,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+//IModel interface
 type IModel interface {
 	PrepareID(id interface{}) (interface{}, error)
-
 	GetID() interface{}
 	SetID(id interface{})
 	SoftDeleting(ctx context.Context, cfg *FieldsConfig) error
@@ -23,6 +23,9 @@ type IModel interface {
 	Saving(ctx context.Context, cfg *FieldsConfig) error
 }
 
+// DefaultModel type contains default IDField,
+// Auto-update CreatedAt UpdatedAt TimestampFields,
+// DeletedAtFields which allow user soft-delete data.
 type DefaultModel struct {
 	IDField         `bson:",inline"`
 	TimestampFields `bson:",inline"`
