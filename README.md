@@ -3,11 +3,18 @@
 <b>A project of SENROK Open Source</b>
 </p>
 
-# 
-
+# Go ODM
 Go-odm, a Golang Object Document Mapping for MongoDB.
+<p>
+  <a href="https://goreportcard.com/report/github.com/senrok/go-odm">
+    <img src="https://goreportcard.com/badge/github.com/senrok/go-odm">
+  </a>
+  <a href="https://godoc.org/github.com/senrok/go-odm">
+    <img src="https://godoc.org/github.com/senrok/go-odm?status.svg" alt="GoDoc">
+  </a> 
+    <img src="https://github.com/senrok/go-odm/actions/workflows/go.yml/badge.svg"/>
+</p>
 
----
 
 ## Table of contents
 
@@ -19,7 +26,6 @@ Go-odm, a Golang Object Document Mapping for MongoDB.
 - [Contribution](#contribution--guidelines)
 - [License](#license)
 
----
 
 ## Features
 - Define your models and perform CRUD operations with hooks before/after each operation. 
@@ -96,6 +102,11 @@ Find a document
 		return session.CommitTransaction(sc)
 	})
 ```
+
+## Documentation
+ <a href="https://godoc.org/github.com/senrok/go-odm">
+    <img src="https://godoc.org/github.com/senrok/go-odm?status.svg" alt="GoDoc">
+  </a>
 
 ## License
 
