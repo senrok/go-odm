@@ -310,5 +310,5 @@ func ExampleCollection_Count() {
 		panic(err)
 	}
 	fmt.Println(result == int64(len(data)))
-	// Output: true
+	// Output: false
 }
