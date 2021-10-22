@@ -178,6 +178,15 @@ func (c *Collection) FindOne(ctx context.Context, filter bson.M, result interfac
 	return c.Collection.FindOne(ctx, filter, opts...).Decode(result)
 }
 
+// FindByPK finds and returns the document where the primary key equals id
+func (c *Collection) FindByPK(ctx context.Context, id interface{}, result interface{}, opts ...*options.FindOneOptions) error {
+	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: id}
+	if c.fieldsConfig.SoftDeletable() {
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
+	}
+	return c.Collection.FindOne(ctx, filter, opts...).Decode(result)
+}
+
 // SoftDeleteOne soft-deletes a records form collection.
 // Notes: if your Model doesn't specify the deletedAt fields, then you will get an error.
 func (c *Collection) SoftDeleteOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {

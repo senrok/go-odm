@@ -146,6 +146,28 @@ func ExampleCollection_FindOne() {
 	_ = opts.Coll(&Doc{}).FindOne(context.TODO(), bson.M{"name": "weny"}, &result)
 }
 
+func TestCollection_FindByPK(t *testing.T) {
+	opts := setupDefaultOpts()
+	resetDB(opts)
+	inserted := &Doc{Name: "weny"}
+	err := opts.Coll(&Doc{}).Create(context.TODO(), inserted)
+	fmt.Println(inserted.ID)
+	assert.Nil(t, err)
+	var result Doc
+	err = opts.Coll(&Doc{}).FindByPK(context.TODO(), inserted.ID, &result)
+	assert.Nil(t, err)
+}
+
+func ExampleCollection_FindByPK() {
+	opts := setupDefaultOpts()
+	resetDB(opts)
+	inserted := &Doc{Name: "weny"}
+	_ = opts.Coll(&Doc{}).Create(context.TODO(), inserted)
+	fmt.Println(inserted.ID)
+	var result Doc
+	_ = opts.Coll(&Doc{}).FindByPK(context.TODO(), inserted.ID, &result)
+}
+
 func TestCollection_SoftDeleteOne(t *testing.T) {
 	opts := setupDefaultOpts()
 	resetDB(opts)
