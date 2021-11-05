@@ -72,6 +72,19 @@ func (o *Options) Coll(m IModel, opts ...*options.CollectionOptions) *Collection
 	}
 }
 
+// CollWithName gets a collection or return a new collection with a specific name
+func (o *Options) CollWithName(m IModel, meta string, opts ...*options.CollectionOptions) *Collection {
+	// exists
+	if ok, coll := o.loadColl(meta); ok {
+		return coll
+		// not exists
+	} else {
+		coll := o.NewCollection(m, meta, opts...)
+		o.storeColl(meta, coll)
+		return coll
+	}
+}
+
 // Create method insert a new record into database.
 func (c *Collection) Create(ctx context.Context, model IModel, opts ...*options.InsertOneOptions) error {
 	if err := modelHooksRunnerExecutor(ctx, c.fieldsConfig, model, creatingHook, savingHook); err != nil {
