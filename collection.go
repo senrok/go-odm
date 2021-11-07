@@ -200,6 +200,27 @@ func (c *Collection) FindByPK(ctx context.Context, id interface{}, result interf
 	return c.Collection.FindOne(ctx, filter, opts...).Decode(result)
 }
 
+// SoftDeleteOneByPK soft-deletes a records form collection.
+func (c *Collection) SoftDeleteOneByPK(ctx context.Context, pk interface{}, opts ...*options.UpdateOptions) error {
+	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: pk}
+	if !c.fieldsConfig.SoftDeletable() {
+		return UnableSoftDeletable
+	} else {
+		excludeSoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
+	}
+	_, err := c.Collection.UpdateOne(ctx,
+		filter,
+		bson.M{
+			"$set": bson.M{
+				c.fieldsConfig.DeleteTimeField: time.Now().UTC(),
+			},
+		}, opts...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // SoftDeleteOne soft-deletes a records form collection.
 // Notes: if your Model doesn't specify the deletedAt fields, then you will get an error.
 func (c *Collection) SoftDeleteOne(ctx context.Context, model IModel, opts ...*options.UpdateOptions) error {
@@ -265,6 +286,27 @@ func (c *Collection) RestoreOne(ctx context.Context, model IModel, opts ...*opti
 	return nil
 }
 
+// RestoreOneByPK restores a soft-deleted record form collection.
+func (c *Collection) RestoreOneByPK(ctx context.Context, id interface{}, opts ...*options.UpdateOptions) error {
+	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: id}
+	if !c.fieldsConfig.SoftDeletable() {
+		return UnableSoftDeletable
+	} else {
+		onlySoftDeletedItems(c.fieldsConfig.DeleteTimeBsonField, filter)
+	}
+	_, err := c.Collection.UpdateOne(ctx,
+		filter,
+		bson.M{
+			"$set": bson.M{
+				c.fieldsConfig.DeleteTimeField: time.Now().UTC(),
+			},
+		}, opts...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // RestoreMany restores multi soft-deleted records form collection.
 //// Notes: if your Model doesn't specify the deletedAt fields, then you will get an error.
 func (c *Collection) RestoreMany(ctx context.Context, filter bson.M, opts ...*options.UpdateOptions) error {
@@ -278,6 +320,19 @@ func (c *Collection) RestoreMany(ctx context.Context, filter bson.M, opts ...*op
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+// DeleteOneByPk deletes a soft-deleted record form collection.
+func (c *Collection) DeleteOneByPk(ctx context.Context, id interface{}, opts ...*options.DeleteOptions) error {
+
+	filter := bson.M{c.fieldsConfig.PrimaryIDBsonField: id}
+
+	_, err := c.Collection.DeleteOne(ctx, filter, opts...)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
