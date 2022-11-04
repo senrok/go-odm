@@ -24,7 +24,17 @@ type Options struct {
 
 type Option func(opts *Options) error
 
-//Clone the Options
+// Client returns *mongo.Client
+func (o *Options) Client() *mongo.Client {
+	return o.db.Client()
+}
+
+// Database returns *mongo.Database
+func (o *Options) Database() *mongo.Database {
+	return o.db
+}
+
+// Clone the Options
 func (o *Options) Clone() *Options {
 	// clone collections
 	collectionsCopy := &sync.Map{}
