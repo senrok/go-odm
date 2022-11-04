@@ -308,7 +308,7 @@ func (c *Collection) RestoreOneByPK(ctx context.Context, id interface{}, opts ..
 }
 
 // RestoreMany restores multi soft-deleted records form collection.
-//// Notes: if your Model doesn't specify the deletedAt fields, then you will get an error.
+// // Notes: if your Model doesn't specify the deletedAt fields, then you will get an error.
 func (c *Collection) RestoreMany(ctx context.Context, filter bson.M, opts ...*options.UpdateOptions) error {
 	if !c.fieldsConfig.SoftDeletable() {
 		return UnableSoftDeletable

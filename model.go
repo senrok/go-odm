@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-//IModel interface
+// IModel interface
 type IModel interface {
 	PrepareID(id interface{}) (interface{}, error)
 	GetID() interface{}
